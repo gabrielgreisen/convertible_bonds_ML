@@ -147,6 +147,17 @@ def frequency_per_year(df: pd.DataFrame) -> pd.Series:
     return df["frequency"].map(_FREQUENCY_MAP)
 
 
+def price_normalizer(df: pd.DataFrame) -> pd.Series:
+    """max(parity, redemption) — the natural scale for convertible bond prices.
+
+    Deep in-the-money bonds trade near parity; out-of-the-money bonds trade
+    near redemption.  Dividing the target price by this normaliser keeps
+    the model's output in a narrow, well-behaved range around 1.
+    """
+    par = df["S"] * df["conversion_ratio"]
+    return np.maximum(par, df["redemption"])
+
+
 # ---------------------------------------------------------------------------
 # Orchestration
 # ---------------------------------------------------------------------------
@@ -158,6 +169,7 @@ _TIERS: dict[int, list[tuple[str, callable]]] = {
         ("income_advantage", income_advantage),
         ("risky_discount_rate", risky_discount_rate),
         ("conversion_premium", conversion_premium),
+        ("price_normalized", price_normalizer),
     ],
     2: [
         ("spread_to_vol_ratio", spread_to_vol_ratio),
@@ -173,6 +185,18 @@ _TIERS: dict[int, list[tuple[str, callable]]] = {
         ("frequency_per_year", frequency_per_year),
     ],
 }
+
+
+def normalize_price(df: pd.DataFrame, price_col: str = "price_convertible") -> pd.Series:
+    """Normalize bond price by max(parity, redemption)."""
+    norm = price_normalizer(df)
+    return df[price_col] / norm
+
+
+def denormalize_price(y_norm: pd.Series | np.ndarray, df: pd.DataFrame) -> pd.Series | np.ndarray:
+    """Convert normalized predictions back to absolute price."""
+    norm = price_normalizer(df)
+    return y_norm * norm
 
 
 def engineer_features(
