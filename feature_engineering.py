@@ -148,14 +148,12 @@ def frequency_per_year(df: pd.DataFrame) -> pd.Series:
 
 
 def price_normalizer(df: pd.DataFrame) -> pd.Series:
-    """max(parity, redemption) — the natural scale for convertible bond prices.
+    """log1p(price_convertible) — log-scaled convertible price.
 
-    Deep in-the-money bonds trade near parity; out-of-the-money bonds trade
-    near redemption.  Dividing the target price by this normaliser keeps
-    the model's output in a narrow, well-behaved range around 1.
+    Compresses the wide price range into a well-behaved target.
+    Invert with np.expm1().
     """
-    par = df["S"] * df["conversion_ratio"]
-    return np.maximum(par, df["redemption"])
+    return np.log1p(df["price_convertible"])
 
 
 # ---------------------------------------------------------------------------
