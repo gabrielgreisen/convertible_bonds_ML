@@ -13,4 +13,10 @@ def build_mlp(input_dim, output_dim, depth, width, batch_norm=False):
             layers.append(nn.BatchNorm1d(width))
         layers.append(nn.LeakyReLU())
     layers.append(nn.Linear(width, output_dim))
-    return nn.Sequential(*layers)
+
+    model = nn.Sequential(*layers)
+    for m in model.modules():
+        if isinstance(m, nn.Linear):
+            nn.init.kaiming_normal_(m.weight, nonlinearity="leaky_relu")
+            nn.init.zeros_(m.bias)
+    return model
